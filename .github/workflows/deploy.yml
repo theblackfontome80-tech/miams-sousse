@@ -1,0 +1,36 @@
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract site from zip
+        run: |
+          mkdir -p _site
+          unzip -o -q miams-sousse.zip -d _site || true
+          test -f _site/index.html
+          rm -rf _site/.claude _site/serve.mjs
+          sed -i 's#<link rel="canonical" href="./" />#<link rel="canonical" href="https://miams.rayantriki.com/" />#; s#content="assets/img/burger-maison.webp"#content="https://miams.rayantriki.com/assets/img/burger-maison.webp"#' _site/index.html
+          echo "miams.rayantriki.com" > _site/CNAME
+          touch _site/.nojekyll
+          find _site -type f
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
